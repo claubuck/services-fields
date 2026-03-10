@@ -46,7 +46,7 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignor
 COPY . .
 
 # Build frontend (Vite) para producción (devDependencies necesarias para build)
-RUN npm ci && npm run build && rm -rf node_modules
+RUN npm install && npm run build && rm -rf node_modules
 
 RUN composer dump-autoload --optimize
 
