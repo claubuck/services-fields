@@ -32,7 +32,7 @@ class EmployeeController extends Controller
             $query->where('estado', $request->estado);
         }
 
-        $employees = $query->get();
+        $employees = $query->paginate(20)->withQueryString();
         $establishments = Establishment::orderBy('nombre')->get(['id', 'nombre']);
 
         return Inertia::render('Employees/Index', [
