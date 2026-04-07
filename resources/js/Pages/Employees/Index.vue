@@ -5,7 +5,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 const props = defineProps({
-    employees: Array,
+    employees: Object,
     establishments: Array,
     filters: Object,
 });
@@ -136,7 +136,7 @@ const estadoClass = (e) => {
 
                 <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                     <div class="overflow-x-auto p-6">
-                        <div v-if="employees.length === 0" class="text-center text-gray-500">
+                        <div v-if="employees.data.length === 0" class="text-center text-gray-500">
                             No hay empleados que coincidan con los filtros. Creá uno o ajustá los filtros.
                         </div>
                         <table v-else class="min-w-full divide-y divide-gray-200">
@@ -154,7 +154,7 @@ const estadoClass = (e) => {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 bg-white">
-                                <tr v-for="employee in employees" :key="employee.id">
+                                <tr v-for="employee in employees.data" :key="employee.id">
                                     <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900">{{ employee.nombre_apellido }}</td>
                                     <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">{{ employee.establishment?.nombre }}</td>
                                     <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">{{ employee.category?.nombre ?? '—' }}</td>
@@ -174,6 +174,31 @@ const estadoClass = (e) => {
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Paginación -->
+                    <div v-if="employees.last_page > 1" class="flex items-center justify-between border-t border-gray-200 px-6 py-4">
+                        <p class="text-sm text-gray-600">
+                            Mostrando {{ employees.from }}–{{ employees.to }} de {{ employees.total }} empleados
+                        </p>
+                        <div class="flex gap-1">
+                            <template v-for="link in employees.links" :key="link.label">
+                                <span
+                                    v-if="link.url === null"
+                                    class="inline-flex items-center rounded-md px-3 py-1.5 text-sm text-gray-400"
+                                    v-html="link.label"
+                                />
+                                <Link
+                                    v-else
+                                    :href="link.url"
+                                    class="inline-flex items-center rounded-md px-3 py-1.5 text-sm"
+                                    :class="link.active
+                                        ? 'bg-indigo-600 font-semibold text-white'
+                                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'"
+                                    v-html="link.label"
+                                />
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
