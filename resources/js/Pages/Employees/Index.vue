@@ -144,29 +144,29 @@ const estadoClass = (e) => {
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Nombre y apellido</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Establecimiento</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Categoría</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Modalidad</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Categoría / Modalidad</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Estado</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Fecha inicio</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">CUIL</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">DNI</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 bg-white">
                                 <tr v-for="employee in employees.data" :key="employee.id">
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900">{{ employee.nombre_apellido }}</td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ employee.nombre_apellido }}</div>
+                                        <div class="text-xs text-gray-500">{{ employee.cuil }}</div>
+                                    </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">{{ employee.establishment?.nombre }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">{{ employee.category?.nombre ?? '—' }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">{{ employee.liquidation_modality?.nombre ?? '—' }}</td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-600">{{ employee.category?.nombre ?? '—' }}</div>
+                                        <div class="text-xs text-gray-500">{{ employee.liquidation_modality?.nombre ?? '—' }}</div>
+                                    </td>
                                     <td class="whitespace-nowrap px-6 py-4">
                                         <span :class="['inline-flex rounded-full px-2 py-1 text-xs font-medium', estadoClass(employee.estado)]">
                                             {{ estadoLabel(employee.estado) }}
                                         </span>
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">{{ employee.fecha_inicio ? new Date(employee.fecha_inicio).toLocaleDateString('es-AR') : '—' }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">{{ employee.cuil }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">{{ employee.dni }}</td>
                                     <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
                                         <Link :href="route('employees.edit', employee.id)" class="text-indigo-600 hover:text-indigo-900">Editar</Link>
                                         <button type="button" @click="destroy(employee.id)" class="ml-4 text-red-600 hover:text-red-900">Eliminar</button>
