@@ -16,4 +16,9 @@ class Establishment extends Model
     {
         return $this->hasMany(Employee::class);
     }
+
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(Contact::class);
+    }
 }
