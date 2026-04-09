@@ -40,7 +40,7 @@ Route::middleware('auth')->group(function () {
     Route::put('empleador', [EmployerController::class, 'update'])->name('employer.update');
 
     Route::resource('liquidations', LiquidationController::class)->only(['index', 'create', 'store', 'show', 'destroy'])->names('liquidations');
-    Route::resource('modalidades', LiquidationModalityController::class)->names('modalidades');
+    Route::resource('modalidades', LiquidationModalityController::class)->parameters(['modalidades' => 'modalidad'])->names('modalidades');
     Route::get('liquidations/{liquidation}/recibos/crear', [PayrollReceiptController::class, 'create'])->name('payroll-receipts.create');
     Route::post('recibos', [PayrollReceiptController::class, 'store'])->name('payroll-receipts.store');
     Route::get('recibos/{payroll_receipt}/editar', [PayrollReceiptController::class, 'edit'])->name('payroll-receipts.edit');
