@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\EstablishmentController;
 use App\Http\Controllers\EmployerController;
+use App\Http\Controllers\EstablishmentController;
 use App\Http\Controllers\LiquidationController;
 use App\Http\Controllers\LiquidationModalityController;
 use App\Http\Controllers\PayrollReceiptController;
@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('establishments', EstablishmentController::class)->names('establishments');
     Route::post('employees/buscar-por-dni', [EmployeeController::class, 'buscarPorDni'])->name('employees.buscar-por-dni');
+    Route::get('employees/export', [EmployeeController::class, 'export'])->name('employees.export');
     Route::resource('employees', EmployeeController::class)->names('employees');
     Route::resource('categories', CategoryController::class)->names('categories');
 
