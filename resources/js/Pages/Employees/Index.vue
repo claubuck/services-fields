@@ -4,7 +4,9 @@ import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+
+const SELECTION_KEY = 'employees_selection';
 
 const props = defineProps({
     employees: Object,
@@ -21,6 +23,43 @@ const selectionMode = ref(false);
 /** @type {import('vue').Ref<number[]>} */
 const selectedEmployeeIds = ref([]);
 
+// Restaurar selección persistida al montar (sobrevive cambio de página)
+onMounted(() => {
+    try {
+        const saved = sessionStorage.getItem(SELECTION_KEY);
+        if (saved) {
+            const { ids, mode } = JSON.parse(saved);
+            selectedEmployeeIds.value = Array.isArray(ids) ? ids : [];
+            selectionMode.value = Boolean(mode);
+        }
+    } catch {
+        // sessionStorage no disponible o JSON inválido
+    }
+});
+
+// Persistir selección en sessionStorage ante cualquier cambio
+watch(
+    [selectedEmployeeIds, selectionMode],
+    ([ids, mode]) => {
+        try {
+            if (mode || ids.length > 0) {
+                sessionStorage.setItem(SELECTION_KEY, JSON.stringify({ ids, mode }));
+            } else {
+                sessionStorage.removeItem(SELECTION_KEY);
+            }
+        } catch {
+            // ignore
+        }
+    },
+    { deep: true },
+);
+
+const clearSelection = () => {
+    selectedEmployeeIds.value = [];
+    selectionMode.value = false;
+    try { sessionStorage.removeItem(SELECTION_KEY); } catch { /* ignore */ }
+};
+
 const allOnPageSelected = computed(() => {
     const ids = props.employees.data.map((e) => e.id);
     return ids.length > 0 && ids.every((id) => selectedEmployeeIds.value.includes(id));
@@ -31,9 +70,10 @@ const someOnPageSelected = computed(() =>
 );
 
 const toggleSelectionMode = () => {
-    selectionMode.value = !selectionMode.value;
-    if (!selectionMode.value) {
-        selectedEmployeeIds.value = [];
+    if (selectionMode.value) {
+        clearSelection();
+    } else {
+        selectionMode.value = true;
     }
 };
 
@@ -119,9 +159,11 @@ const buildExportUrl = () => {
 const runExport = () => {
     window.location.href = buildExportUrl();
     closeExportModal();
+    clearSelection();
 };
 
 const applyFilters = () => {
+    clearSelection();
     router.get(route('employees.index'), {
         search: search.value || undefined,
         establishment_id: establishmentId.value || undefined,
@@ -133,6 +175,7 @@ const clearFilters = () => {
     search.value = '';
     establishmentId.value = '';
     estado.value = '';
+    clearSelection();
     router.get(route('employees.index'));
 };
 
