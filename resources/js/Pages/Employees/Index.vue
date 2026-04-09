@@ -1,8 +1,10 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     employees: Object,
@@ -13,6 +15,68 @@ const props = defineProps({
 const search = ref(props.filters?.search ?? '');
 const establishmentId = ref(props.filters?.establishment_id ?? '');
 const estado = ref(props.filters?.estado ?? '');
+
+const showExportModal = ref(false);
+const exportFormat = ref('excel');
+const excelTemplate = ref('normal');
+/** @type {import('vue').Ref<string[]>} */
+const selectedOptionalColumns = ref([]);
+
+const optionalExportColumns = [
+    { key: 'dni', label: 'DNI' },
+    { key: 'establishment', label: 'Establecimiento' },
+    { key: 'categoria', label: 'Categoría' },
+    { key: 'modalidad', label: 'Modalidad' },
+    { key: 'estado', label: 'Estado' },
+    { key: 'fecha_inicio', label: 'Fecha inicio' },
+    { key: 'direccion', label: 'Dirección' },
+    { key: 'telefono', label: 'Teléfono' },
+];
+
+const showColumnSelection = computed(
+    () => exportFormat.value === 'pdf' || (exportFormat.value === 'excel' && excelTemplate.value === 'normal'),
+);
+
+const openExportModal = () => {
+    showExportModal.value = true;
+};
+
+const closeExportModal = () => {
+    showExportModal.value = false;
+};
+
+const buildExportUrl = () => {
+    const params = new URLSearchParams();
+    params.set('format', exportFormat.value);
+
+    if (exportFormat.value === 'excel') {
+        params.set('template', excelTemplate.value);
+    }
+
+    if (search.value) {
+        params.set('search', search.value);
+    }
+
+    if (establishmentId.value) {
+        params.set('establishment_id', String(establishmentId.value));
+    }
+
+    if (estado.value) {
+        params.set('estado', String(estado.value));
+    }
+
+    if (showColumnSelection.value) {
+        const cols = ['nombre_apellido', 'cuil', ...selectedOptionalColumns.value];
+        cols.forEach((c) => params.append('columns[]', c));
+    }
+
+    return `${route('employees.export')}?${params.toString()}`;
+};
+
+const runExport = () => {
+    window.location.href = buildExportUrl();
+    closeExportModal();
+};
 
 const applyFilters = () => {
     router.get(route('employees.index'), {
@@ -60,9 +124,14 @@ const estadoClass = (e) => {
                 <h2 class="min-w-0 truncate text-xl font-semibold leading-tight text-gray-800">
                     Empleados
                 </h2>
-                <Link :href="route('employees.create')" class="shrink-0">
-                    <PrimaryButton>Nuevo empleado</PrimaryButton>
-                </Link>
+                <div class="flex shrink-0 flex-wrap items-center gap-2">
+                    <SecondaryButton type="button" @click="openExportModal">
+                        Exportar
+                    </SecondaryButton>
+                    <Link :href="route('employees.create')">
+                        <PrimaryButton>Nuevo empleado</PrimaryButton>
+                    </Link>
+                </div>
             </div>
         </template>
 
@@ -202,5 +271,108 @@ const estadoClass = (e) => {
                     </div>
                 </div>
             </div>
+
+        <Modal :show="showExportModal" max-width="xl" @close="closeExportModal">
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-gray-900">
+                    Exportar empleados
+                </h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    Se exportan los empleados según los filtros actuales (toda la lista, no solo esta página).
+                </p>
+
+                <div class="mt-6 space-y-4">
+                    <div>
+                        <span class="block text-sm font-medium text-gray-700">Formato</span>
+                        <div class="mt-2 flex flex-wrap gap-4">
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input
+                                    v-model="exportFormat"
+                                    type="radio"
+                                    value="excel"
+                                    class="border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                Excel
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input
+                                    v-model="exportFormat"
+                                    type="radio"
+                                    value="pdf"
+                                    class="border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                PDF
+                            </label>
+                        </div>
+                    </div>
+
+                    <div v-if="exportFormat === 'excel'">
+                        <span class="block text-sm font-medium text-gray-700">Plantilla Excel</span>
+                        <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:gap-6">
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input
+                                    v-model="excelTemplate"
+                                    type="radio"
+                                    value="normal"
+                                    class="border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                Normal (columnas seleccionables)
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input
+                                    v-model="excelTemplate"
+                                    type="radio"
+                                    value="campos"
+                                    class="border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                Campos con fechas
+                            </label>
+                        </div>
+                        <p v-if="excelTemplate === 'campos'" class="mt-2 text-xs text-gray-500">
+                            Incluye título, columnas de nombre y CUIL y columnas vacías para fechas (como el listado modelo).
+                        </p>
+                    </div>
+
+                    <div v-if="showColumnSelection">
+                        <span class="block text-sm font-medium text-gray-700">Columnas</span>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Nombre y CUIL siempre se incluyen.
+                        </p>
+                        <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <label class="flex items-center gap-2 text-sm text-gray-600">
+                                <input type="checkbox" checked disabled class="rounded border-gray-300" />
+                                Nombre y Apellido
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-gray-600">
+                                <input type="checkbox" checked disabled class="rounded border-gray-300" />
+                                CUIL
+                            </label>
+                            <label
+                                v-for="col in optionalExportColumns"
+                                :key="col.key"
+                                class="flex cursor-pointer items-center gap-2 text-sm text-gray-700"
+                            >
+                                <input
+                                    v-model="selectedOptionalColumns"
+                                    type="checkbox"
+                                    :value="col.key"
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                {{ col.label }}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-2 border-t border-gray-100 pt-4">
+                    <SecondaryButton type="button" @click="closeExportModal">
+                        Cancelar
+                    </SecondaryButton>
+                    <PrimaryButton type="button" @click="runExport">
+                        Descargar
+                    </PrimaryButton>
+                </div>
+            </div>
+        </Modal>
     </AuthenticatedLayout>
 </template>
