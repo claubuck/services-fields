@@ -16,6 +16,45 @@ const search = ref(props.filters?.search ?? '');
 const establishmentId = ref(props.filters?.establishment_id ?? '');
 const estado = ref(props.filters?.estado ?? '');
 
+// ---------- selección de filas ----------
+const selectionMode = ref(false);
+/** @type {import('vue').Ref<number[]>} */
+const selectedEmployeeIds = ref([]);
+
+const allOnPageSelected = computed(() => {
+    const ids = props.employees.data.map((e) => e.id);
+    return ids.length > 0 && ids.every((id) => selectedEmployeeIds.value.includes(id));
+});
+
+const someOnPageSelected = computed(() =>
+    props.employees.data.some((e) => selectedEmployeeIds.value.includes(e.id)),
+);
+
+const toggleSelectionMode = () => {
+    selectionMode.value = !selectionMode.value;
+    if (!selectionMode.value) {
+        selectedEmployeeIds.value = [];
+    }
+};
+
+const toggleSelectAll = () => {
+    const ids = props.employees.data.map((e) => e.id);
+    if (allOnPageSelected.value) {
+        selectedEmployeeIds.value = selectedEmployeeIds.value.filter((id) => !ids.includes(id));
+    } else {
+        selectedEmployeeIds.value = [...new Set([...selectedEmployeeIds.value, ...ids])];
+    }
+};
+
+const toggleEmployee = (id) => {
+    if (selectedEmployeeIds.value.includes(id)) {
+        selectedEmployeeIds.value = selectedEmployeeIds.value.filter((i) => i !== id);
+    } else {
+        selectedEmployeeIds.value = [...selectedEmployeeIds.value, id];
+    }
+};
+
+// ---------- export ----------
 const showExportModal = ref(false);
 const exportFormat = ref('excel');
 const excelTemplate = ref('normal');
@@ -68,6 +107,10 @@ const buildExportUrl = () => {
     if (showColumnSelection.value) {
         const cols = ['nombre_apellido', 'cuil', ...selectedOptionalColumns.value];
         cols.forEach((c) => params.append('columns[]', c));
+    }
+
+    if (selectedEmployeeIds.value.length > 0) {
+        selectedEmployeeIds.value.forEach((id) => params.append('employee_ids[]', id));
     }
 
     return `${route('employees.export')}?${params.toString()}`;
@@ -125,6 +168,25 @@ const estadoClass = (e) => {
                     Empleados
                 </h2>
                 <div class="flex shrink-0 flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        @click="toggleSelectionMode"
+                        :class="[
+                            'inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-widest shadow-sm transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
+                            selectionMode
+                                ? 'border-indigo-600 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
+                        ]"
+                    >
+                        <svg v-if="selectionMode" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        {{ selectionMode ? 'Cancelar selección' : 'Seleccionar' }}
+                        <span
+                            v-if="selectionMode && selectedEmployeeIds.length > 0"
+                            class="ml-1 rounded-full bg-indigo-600 px-1.5 py-0.5 text-xs font-bold text-white"
+                        >{{ selectedEmployeeIds.length }}</span>
+                    </button>
                     <SecondaryButton type="button" @click="openExportModal">
                         Exportar
                     </SecondaryButton>
@@ -211,6 +273,15 @@ const estadoClass = (e) => {
                         <table v-else class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
+                                    <th v-if="selectionMode" class="w-10 px-4 py-3">
+                                        <input
+                                            type="checkbox"
+                                            :checked="allOnPageSelected"
+                                            :indeterminate="someOnPageSelected && !allOnPageSelected"
+                                            @change="toggleSelectAll"
+                                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                    </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Nombre y apellido</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Establecimiento</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Categoría / Modalidad</th>
@@ -220,8 +291,24 @@ const estadoClass = (e) => {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 bg-white">
-                                <tr v-for="employee in employees.data" :key="employee.id">
-                                    <td class="px-6 py-4">
+                                <tr
+                                    v-for="employee in employees.data"
+                                    :key="employee.id"
+                                    :class="selectionMode && selectedEmployeeIds.includes(employee.id) ? 'bg-indigo-50' : ''"
+                                >
+                                    <td v-if="selectionMode" class="w-10 px-4 py-4">
+                                        <input
+                                            type="checkbox"
+                                            :checked="selectedEmployeeIds.includes(employee.id)"
+                                            @change="toggleEmployee(employee.id)"
+                                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                    </td>
+                                    <td
+                                        class="px-6 py-4"
+                                        :class="selectionMode ? 'cursor-pointer' : ''"
+                                        @click="selectionMode ? toggleEmployee(employee.id) : null"
+                                    >
                                         <div class="text-sm font-medium text-gray-900">{{ employee.nombre_apellido }}</div>
                                         <div class="text-xs text-gray-500">{{ employee.cuil }}</div>
                                     </td>
@@ -278,7 +365,12 @@ const estadoClass = (e) => {
                     Exportar empleados
                 </h3>
                 <p class="mt-1 text-sm text-gray-500">
-                    Se exportan los empleados según los filtros actuales (toda la lista, no solo esta página).
+                    <template v-if="selectedEmployeeIds.length > 0">
+                        Se exportarán los <strong>{{ selectedEmployeeIds.length }} empleados seleccionados</strong>.
+                    </template>
+                    <template v-else>
+                        Se exportan todos los empleados según los filtros actuales (toda la lista, no solo esta página).
+                    </template>
                 </p>
 
                 <div class="mt-6 space-y-4">

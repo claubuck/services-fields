@@ -60,9 +60,11 @@ class EmployeeController extends Controller
             'search' => ['nullable', 'string', 'max:255'],
             'establishment_id' => ['nullable', 'exists:establishments,id'],
             'estado' => ['nullable', 'in:activo,inactivo,suspendido,pendiente_de_baja'],
+            'employee_ids' => ['nullable', 'array'],
+            'employee_ids.*' => ['integer', 'exists:employees,id'],
         ]);
 
-        $employees = $this->employeesQueryForExport($request)->get();
+        $employees = $this->employeesQueryForExport($request, $validated['employee_ids'] ?? [])->get();
 
         $format = $validated['format'];
         $template = $validated['template'] ?? 'normal';
@@ -95,11 +97,20 @@ class EmployeeController extends Controller
 
     /**
      * Same filters as index(), without pagination.
+     * If $employeeIds is non-empty, only those IDs are returned (ignoring other filters).
+     *
+     * @param  array<int, int>  $employeeIds
      */
-    protected function employeesQueryForExport(Request $request)
+    protected function employeesQueryForExport(Request $request, array $employeeIds = [])
     {
         $query = Employee::with(['establishment:id,nombre', 'category:id,nombre', 'liquidationModality:id,nombre,precio_por_unidad'])
             ->orderBy('nombre_apellido');
+
+        if (! empty($employeeIds)) {
+            $query->whereIn('id', $employeeIds);
+
+            return $query;
+        }
 
         if ($search = $request->filled('search') ? trim((string) $request->search) : null) {
             $query->where(function ($q) use ($search) {
